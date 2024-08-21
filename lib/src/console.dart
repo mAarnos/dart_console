@@ -206,7 +206,7 @@ class Console {
     rawMode = false;
 
     if (result.isEmpty || result[0] != '\x1b') {
-      print(' result: $result  result.length: ${result.length}');
+      // print(' result: $result  result.length: ${result.length}');
       return null;
     }
 
@@ -214,14 +214,14 @@ class Console {
     final coords = result.split(';');
 
     if (coords.length != 2) {
-      print(' coords.length: ${coords.length}');
+      // print(' coords.length: ${coords.length}');
       return null;
     }
     if ((int.tryParse(coords[0]) != null) &&
         (int.tryParse(coords[1]) != null)) {
       return Coordinate(int.parse(coords[0]) - 1, int.parse(coords[1]) - 1);
     } else {
-      print(' coords[0]: ${coords[0]}   coords[1]: ${coords[1]}');
+      // print(' coords[0]: ${coords[0]}   coords[1]: ${coords[1]}');
       return null;
     }
   }
