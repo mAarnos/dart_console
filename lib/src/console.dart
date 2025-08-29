@@ -55,8 +55,8 @@ class Console {
   // Create a named constructor specifically for scrolling consoles
   // Use `Console.scrolling(recordBlanks: false)` to omit blank lines
   // from console history
-  Console.scrolling({bool recordBlanks = true})
-    : _scrollbackBuffer = ScrollbackBuffer(recordBlanks: recordBlanks);
+  Console.scrolling({bool recordBlanks = true, String historyFilePath = '.console_history'})
+      : _scrollbackBuffer = ScrollbackBuffer(recordBlanks: recordBlanks, historyFilePath: historyFilePath);
 
   /// Enables or disables raw mode.
   ///
