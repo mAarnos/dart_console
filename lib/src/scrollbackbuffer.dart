@@ -1,24 +1,44 @@
+import 'dart:io';
+
 /// The ScrollbackBuffer class is a utility for handling multi-line user
-/// input in readline(). It doesn't support history editing a la bash,
-/// but it should handle the most common use cases.
+/// input in readline(). It now supports a persistent history by saving
+/// and loading the command history to a file.
 class ScrollbackBuffer {
-  final lineList = <String>[];
+  final List<String> lineList = <String>[];
   int? lineIndex;
   String? currentLineBuffer;
   bool recordBlanks;
+  final String _historyFilePath;
 
-  // called by Console.scolling()
-  ScrollbackBuffer({required this.recordBlanks});
+  // called by Console.scrolling()
+  ScrollbackBuffer({required this.recordBlanks, String historyFilePath = '.console_history'})
+      : _historyFilePath = historyFilePath {
+    _loadHistory();
+  }
+
+  void _loadHistory() {
+    final historyFile = File(_historyFilePath);
+    if (historyFile.existsSync()) {
+      lineList.addAll(historyFile.readAsLinesSync());
+      lineIndex = lineList.length;
+    }
+  }
+
+  void _appendToHistory(String buffer) {
+    final historyFile = File(_historyFilePath);
+    historyFile.writeAsStringSync('$buffer\n', mode: FileMode.append);
+  }
 
   /// Add a new line to the scrollback buffer. This would normally happen
   /// when the user finishes typing/editing the line and taps the 'enter'
-  /// key.
+  /// key. This also appends the line to the persistent history file.
   void add(String buffer) {
     // don't add blank line to scrollback history if !recordBlanks
-    if (buffer == '' && !recordBlanks) {
+    if (buffer.trim().isEmpty && !recordBlanks) {
       return;
     }
     lineList.add(buffer);
+    _appendToHistory(buffer);
     lineIndex = lineList.length;
     currentLineBuffer = null;
   }
@@ -31,15 +51,19 @@ class ScrollbackBuffer {
   String up(String buffer) {
     // Handle the case of the user tapping 'up' before there is a
     // scrollback buffer to scroll through.
-    if (lineIndex == null) {
+    if (lineList.isEmpty) {
       return buffer;
-    } else {
-      // Only store the current line buffer once while scrolling up
-      currentLineBuffer ??= buffer;
-      lineIndex = lineIndex! - 1;
-      lineIndex = lineIndex! < 0 ? 0 : lineIndex;
-      return lineList[lineIndex!];
     }
+
+    lineIndex ??= lineList.length;
+
+    // Only store the current line buffer once while scrolling up
+    currentLineBuffer ??= buffer;
+    lineIndex = lineIndex! - 1;
+    if (lineIndex! < 0) {
+      lineIndex = 0;
+    }
+    return lineList[lineIndex!];
   }
 
   /// Scroll 'down' -- Replace the user-input buffer with the contents of
@@ -48,12 +72,12 @@ class ScrollbackBuffer {
   String? down() {
     // Handle the case of the user tapping 'down' before there is a
     // scrollback buffer to scroll through.
-    if (lineIndex == null) {
+    if (lineIndex == null || lineList.isEmpty) {
       return null;
     } else {
       lineIndex = lineIndex! + 1;
-      lineIndex = lineIndex! > lineList.length ? lineList.length : lineIndex;
-      if (lineIndex == lineList.length) {
+      if (lineIndex! >= lineList.length) {
+        lineIndex = lineList.length;
         // Once the user scrolls to the bottom, reset the current line
         // buffer so that up() can store it again: The user might have
         // edited it between down() and up().
